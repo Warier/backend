@@ -2,11 +2,12 @@ const Order = require('../Models/order');
 const Item = require('../Models/item');
 const User = require('../Models/user');
 const Material = require('../Models/material');
+const mongoose = require("mongoose");
 
 const orderController = {
 
     calculateItemPrice: async (item) => {
-        const material = await Material.findById(item.material);
+        const material = await Material.findById(item.materials);
         return material.price * item.weight;
     },
 
@@ -72,6 +73,7 @@ const orderController = {
                 user: user._id,
                 items: items,
                 status: 'pending',
+                totalPrice: 0,
                 createdAt: new Date(),
                 updatedAt: new Date()
             });
@@ -129,6 +131,7 @@ const orderController = {
             const user = await User.findOne({ username: req.user });
             const order = await Order.findById(id);
 
+
             if (!order) {
                 return res.status(404).json({ message: 'Order não encontrada' });
             }
@@ -148,18 +151,26 @@ const orderController = {
     createItem: async (req, res) => {
         try {
             const user = await User.findOne({ username: req.user });
-            const { name, description, material, weight } = req.body;
+            const { name, description, materials, weight } = req.body;
+            const { orderId } = req.params;
+            const order = await Order.findById(orderId);
 
             const newItem = new Item({
                 name,
                 description,
-                material,
+                materials,
                 weight,
                 createdAt: new Date(),
                 updatedAt: new Date()
             });
-
+            console.log(order);
             newItem.price = await orderController.calculateItemPrice(newItem);
+            order.items.push({
+                item: newItem,
+                quantity: 1
+            });
+            order.totalPrice = newItem.price
+            await order.save();
             await newItem.save();
 
             res.status(201).json({ message: 'Item criado com sucesso', item: newItem });

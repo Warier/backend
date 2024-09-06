@@ -38,14 +38,32 @@ const userController = {
             const reqUser = await User.findOne({ username: req.user });
 
             if (!reqUser || !reqUser.isAdmin) {
-                return res.status(403).json({ message: 'acesso negado' });
+                return res.status(403).json({ message: 'Acesso negado' });
             }
 
-            const users = await User.find({});
-            res.json(users);
+            let { limit = 10, page = 1 } = req.query;
+            limit = parseInt(limit);
+            page = parseInt(page);
+
+            if (![5, 10, 30].includes(limit)) {
+                return res.status(400).json({ message: 'Limite inválido. Use 5, 10 ou 30.' });
+            }
+
+            const totalUsers = await User.countDocuments();
+            const users = await User.find()
+                .sort({ createdAt: -1 })
+                .skip((page - 1) * limit)
+                .limit(limit);
+
+            res.json({
+                users,
+                currentPage: page,
+                totalPages: Math.ceil(totalUsers / limit),
+                totalItems: totalUsers
+            });
         } catch (error) {
-            console.error('erro:', error);
-            res.status(500).json({ message: 'erro interno', error: error.message });
+            console.error('Erro ao listar usuários:', error);
+            res.status(500).json({ message: 'Erro interno do servidor' });
         }
     },
     deleteUser: async (req, res) => {

@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const install = require("../Controllers/config")
+const config = require("../Controllers/config")
 
-router.get('/install', install);
+router.get('/install', config.install);
 
 router.get('/docs', (req, res) => {
 

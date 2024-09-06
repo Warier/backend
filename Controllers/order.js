@@ -67,7 +67,20 @@ const orderController = {
     createOrder: async (req, res) => {
         try {
             const user = await User.findOne({ username: req.user });
-            const { items } = req.body;
+            let { items } = req.body;
+
+            // Processar os itens para o formato correto
+            items = items.map(item => {
+                if (typeof item === 'string') {
+                    // Se o item for apenas um ID, assume quantidade 1
+                    return { item: item, quantity: 1 };
+                } else if (typeof item === 'object' && item.item && item.quantity) {
+                    // Se o item já estiver no formato correto, mantenha-o
+                    return item;
+                } else {
+                    throw new Error('Formato de item inválido');
+                }
+            });
 
             const newOrder = new Order({
                 user: user._id,
@@ -81,7 +94,10 @@ const orderController = {
             await newOrder.save();
             await orderController.updateOrderTotalPrice(newOrder._id);
 
-            res.status(201).json({ message: 'Order criada com sucesso', order: newOrder });
+            // Buscar a ordem atualizada para retornar
+            const updatedOrder = await Order.findById(newOrder._id).populate('items.item');
+
+            res.status(201).json({ message: 'Order criada com sucesso', order: updatedOrder });
         } catch (error) {
             console.error('Erro ao criar order:', error);
             res.status(500).json({ message: 'Erro interno do servidor', error: error.message });

@@ -69,13 +69,11 @@ const orderController = {
             const user = await User.findOne({ username: req.user });
             let { items } = req.body;
 
-            // Processar os itens para o formato correto
+
             items = items.map(item => {
                 if (typeof item === 'string') {
-                    // Se o item for apenas um ID, assume quantidade 1
                     return { item: item, quantity: 1 };
                 } else if (typeof item === 'object' && item.item && item.quantity) {
-                    // Se o item já estiver no formato correto, mantenha-o
                     return item;
                 } else {
                     throw new Error('Formato de item inválido');
@@ -94,7 +92,7 @@ const orderController = {
             await newOrder.save();
             await orderController.updateOrderTotalPrice(newOrder._id);
 
-            // Buscar a ordem atualizada para retornar
+
             const updatedOrder = await Order.findById(newOrder._id).populate('items.item');
 
             res.status(201).json({ message: 'Order criada com sucesso', order: updatedOrder });
@@ -210,12 +208,10 @@ const orderController = {
             updateData.updatedAt = new Date();
 
             if (!user.isAdmin) {
-                // Usuários normais só podem modificar nome, descrição, material e peso
                 ['name', 'description', 'material', 'weight'].forEach(field => {
                     if (updateData[field]) item[field] = updateData[field];
                 });
             } else {
-                // Admins podem modificar todos os campos
                 Object.assign(item, updateData);
             }
 
@@ -248,13 +244,11 @@ const orderController = {
                 return res.status(404).json({ message: 'Item não encontrado' });
             }
 
-            // Remover o item de todas as orders
             await Order.updateMany(
                 { 'items.item': id },
                 { $pull: { items: { item: id } } }
             );
 
-            // Atualizar preços de todas as orders afetadas
             const affectedOrders = await Order.find({ 'items.item': id });
             for (let order of affectedOrders) {
                 await orderController.updateOrderTotalPrice(order._id);

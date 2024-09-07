@@ -31,4 +31,7 @@ router.put('/materials/:id', authController.validateAccess, materialController.u
 
 router.delete('/materials/:id', authController.validateAccess, materialController.deleteMaterial);
 
+router.get('/usedMaterials', authController.validateAccess, materialController.listMaterialsUsed);
+
+
 module.exports = router;

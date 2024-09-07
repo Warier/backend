@@ -1,4 +1,6 @@
 const Material = require('../Models/material');
+const Order = require('../Models/order');
+const Item = require('../Models/item');
 const User = require('../Models/user');
 
 const materialController = {
@@ -97,6 +99,43 @@ const materialController = {
         } catch (error) {
             console.error('Erro ao deletar material:', error);
             res.status(500).json({ message: 'Erro interno do servidor', error: error.message });
+        }
+    },
+    listMaterialsUsed: async (req, res) => {
+        try {
+            const user = await User.findOne({ username: req.user });
+            if (!user) {
+                return res.status(404).json({ message: 'usuario nao encontrado' });
+            }
+
+            const userOrders = await Order.find({ user: user._id }).populate({
+                path: 'items.item',
+                populate: {
+                    path: 'materials',
+                    model: 'Material'
+                }
+            });
+
+            let materials = [];
+            let uniqueMaterials = {};
+
+            for(const order of userOrders){
+                for(const items of order.items) {
+                    for (let material of items.item.materials) {
+                        if (!uniqueMaterials[material._id]) {
+                            uniqueMaterials[material._id] = true;
+                            materials.push(material);
+                        }
+                    }
+                }
+            }
+            res.json({
+                materials: materials
+            });
+
+        } catch (error) {
+            console.error('erro:', error);
+            res.status(500).json({ message: 'erro interno', error: error.message });
         }
     }
 };
